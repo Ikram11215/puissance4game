@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int       @id @default(autoincrement())
+  firstname         String
+  lastname          String
+  email             String    @unique
+  pseudo            String    @unique
+  password          String
+  emailVerified     Boolean   @default(false)
+  verificationToken String?   @unique
+  wins              Int       @default(0)
+  losses            Int       @default(0)
+  draws             Int       @default(0)
+  elo               Int       @default(1000)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  gamesAsRed        Game[]    @relation("RedPlayer")
+  gamesAsYellow     Game[]    @relation("YellowPlayer")
+
+  @@map("user")
+}
+
+model Game {
+  id            String    @id @default(uuid())
+  roomId        String    @unique
+  redPlayerId   Int
+  yellowPlayerId Int?
+  winner        String?
+  status        String    @default("waiting")
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  
+  redPlayer     User      @relation("RedPlayer", fields: [redPlayerId], references: [id])
+  yellowPlayer  User?     @relation("YellowPlayer", fields: [yellowPlayerId], references: [id])
+
+  @@map("game")
+}
