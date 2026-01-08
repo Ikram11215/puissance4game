@@ -42,10 +42,18 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (result.success) {
-      setSuccess(result.message || "Inscription réussie !");
-      setTimeout(() => {
-        window.location.href = "/login";
-      }, 2000);
+      // Si l'email n'a pas été envoyé, on affiche un avertissement
+      if (result.emailSent === false) {
+        setError(
+          "Inscription réussie, mais l'email de vérification n'a pas pu être envoyé. " +
+          "Vérifiez votre configuration Resend dans les logs Render."
+        );
+      } else {
+        setSuccess(result.message || "Inscription réussie !");
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 2000);
+      }
     } else {
       setError(result.error || "Une erreur est survenue");
     }
