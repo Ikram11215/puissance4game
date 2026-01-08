@@ -1,0 +1,46 @@
+services:
+  # Service Next.js (frontend + API)
+  - type: web
+    name: ikram-jeu-nextjs
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false  # À configurer manuellement dans le dashboard
+      - key: RESEND_API_KEY
+        sync: false  # À configurer manuellement
+      - key: RESEND_FROM_EMAIL
+        sync: false  # À configurer manuellement
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false  # URL de votre app Render (ex: https://ikram-jeu.onrender.com)
+      - key: NEXT_PUBLIC_SOCKET_URL
+        sync: false  # URL du service socket (ex: https://ikram-jeu-socket.onrender.com)
+
+  # Service Socket.io (WebSocket)
+  - type: web
+    name: ikram-jeu-socket
+    env: node
+    plan: free
+    buildCommand: npm install && npx prisma generate
+    startCommand: npm run start:socket
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false  # Même base de données que Next.js
+      - key: SOCKET_PORT
+        value: 10000  # Render utilise le port depuis PORT env var
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false  # URL de votre app Next.js
+
+databases:
+  # Base de données MySQL
+  - name: ikram-jeu-db
+    databaseName: ikram_game
+    user: ikram_user
+    plan: free
+

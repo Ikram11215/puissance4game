@@ -10,11 +10,14 @@ import { calculateEloChange } from './lib/game/elo';
 const prisma = new PrismaClient();
 // je crée le serveur http
 const httpServer = createServer();
-// je configure socket.io avc cors pr accepter les connexions depuis localhost:3000
+// je configure socket.io avc cors pr accepter les connexions
+// en production, j'utilise l'URL de l'app depuis les variables d'env
+const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 const io = new Server(httpServer, {
   cors: {
-    origin: 'http://localhost:3000',
-    methods: ['GET', 'POST']
+    origin: allowedOrigin,
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
@@ -453,8 +456,8 @@ io.on('connection', (socket) => {
 
 });
 
-// je récupère le port depuis les variables d'env ou j'utilise 3001 par défaut
-const PORT = process.env.SOCKET_PORT || 3001;
+// je récupère le port depuis les variables d'env (Render utilise PORT, sinon SOCKET_PORT, sinon 3001)
+const PORT = process.env.PORT || process.env.SOCKET_PORT || 3001;
 
 // je démarre le serveur
 httpServer.listen(PORT, () => {

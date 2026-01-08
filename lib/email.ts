@@ -8,10 +8,27 @@ export async function sendVerificationEmail(email: string, token: string, firstn
   // je crée l'url de vérification
   const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
   
+  // mode développement : si RESEND_API_KEY n'est pas configurée, on affiche juste le lien dans les logs
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'ta_cle_api_resend') {
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('📧 MODE DÉVELOPPEMENT - Email de vérification (non envoyé)');
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log(`Pour: ${email}`);
+    console.log(`Lien de vérification: ${verificationUrl}`);
+    console.log('═══════════════════════════════════════════════════════════');
+    return { 
+      success: true, 
+      data: { mode: 'development', url: verificationUrl }
+    };
+  }
+  
   try {
+    // j'utilise le domaine configuré ou le domaine de test par défaut
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    
     // j'envoie l'email avc resend
-    await resend.emails.send({
-      from: 'onboarding@resend.dev',
+    const result = await resend.emails.send({
+      from: fromEmail,
       to: email,
       subject: 'Vérifiez votre adresse email - Puissance 4',
       html: `
@@ -38,10 +55,31 @@ export async function sendVerificationEmail(email: string, token: string, firstn
         </div>
       `,
     });
-    return { success: true };
-  } catch (error) {
+    
+    // je vérifie si l'envoi a réussi (Resend peut retourner une erreur dans result.error)
+    if (result.error) {
+      console.error('Erreur Resend:', result.error);
+      return { 
+        success: false, 
+        error: result.error.message || 'Erreur lors de l\'envoi de l\'email',
+        details: result.error
+      };
+    }
+    
+    console.log('Email envoyé avec succès:', result);
+    return { success: true, data: result };
+  } catch (error: any) {
     console.error('Erreur envoi email:', error);
-    return { success: false, error };
+    // j'extrais le message d'erreur détaillé
+    const errorMessage = error?.message || error?.toString() || 'Erreur inconnue lors de l\'envoi de l\'email';
+    const errorDetails = error?.response?.body || error;
+    console.error('Détails de l\'erreur:', JSON.stringify(errorDetails, null, 2));
+    
+    return { 
+      success: false, 
+      error: errorMessage,
+      details: errorDetails
+    };
   }
 }
 

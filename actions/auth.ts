@@ -88,12 +88,28 @@ export async function registerUser(formData: {
     });
 
     // j'envoie l'email de vérification
-    await sendVerificationEmail(email, verificationToken, firstname);
+    const emailResult = await sendVerificationEmail(email, verificationToken, firstname);
+    
+    // si l'envoi d'email échoue, je log l'erreur mais je continue quand même
+    // (l'utilisateur peut demander un renvoi d'email plus tard)
+    if (!emailResult.success) {
+      console.error('Échec de l\'envoi de l\'email de vérification:', emailResult.error);
+      console.error('Détails:', emailResult.details);
+      // je retourne quand même un succès mais avec un avertissement
+      return { 
+        success: true, 
+        message: "Inscription réussie ! Cependant, l'email de vérification n'a pas pu être envoyé. Vérifiez votre configuration Resend ou contactez le support.",
+        user: { id: user.id, email: user.email, pseudo: user.pseudo },
+        emailSent: false,
+        emailError: emailResult.error
+      };
+    }
 
     return { 
       success: true, 
       message: "Inscription réussie ! Vérifiez votre email pour activer votre compte.",
-      user: { id: user.id, email: user.email, pseudo: user.pseudo }
+      user: { id: user.id, email: user.email, pseudo: user.pseudo },
+      emailSent: true
     };
   } catch (error) {
     console.error("Erreur lors de l'inscription:", error);

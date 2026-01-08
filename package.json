@@ -6,8 +6,9 @@
     "dev": "next dev",
     "dev:socket": "tsx watch socket-server.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:socket\"",
-    "build": "next build",
+    "build": "next build && npx prisma generate",
     "start": "next start",
+    "start:socket": "node -r tsx/register socket-server.ts",
     "lint": "eslint"
   },
   "dependencies": {

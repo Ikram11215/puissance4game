@@ -48,14 +48,14 @@ SOCKET_PORT=3001
 **important** : 
 - remplace `root:root` par ton user et mdp mysql si c'est pas ça
 - remplace `localhost:8889` par ton host et port mysql si c'est différent
-- remplace `ikram-game` par le nom de ta base de données
+- remplace `puissance4game` par le nom de ta base de données
 - mets ta vraie clé api resend (sinon les emails de vérification marcheront pas)
 
 4. crée la base de données
 
 ouvre mysql et crée une base de données :
 ```sql
-CREATE DATABASE ikram-game;
+CREATE DATABASE puissance4game;
 ```
 
 ou fais-le depuis phpmyadmin si tu utilises mamp
