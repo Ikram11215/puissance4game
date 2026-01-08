@@ -8,7 +8,9 @@
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:socket\"",
     "build": "next build && npx prisma generate",
     "start": "next start",
+    "start:with-migrations": "node scripts/start-with-migrations.js",
     "start:socket": "tsx socket-server.ts",
+    "start:socket:with-migrations": "node scripts/start-socket-with-migrations.js",
     "lint": "eslint"
   },
   "dependencies": {

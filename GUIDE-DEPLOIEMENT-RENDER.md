@@ -91,9 +91,9 @@ Créez une base PostgreSQL locale ou utilisez une base de test pour vérifier qu
    - **Root Directory** : `/` (laisser vide)
    - **Runtime** : `Node`
    - **Build Command** : `npm install && npx prisma generate`
-   - **Start Command** : `npm run start:socket`
+   - **Start Command** : `npm run start:socket:with-migrations`
    
-   ⚠️ **Note** : Le script utilise `tsx` pour exécuter TypeScript directement en production.
+   ⚠️ **Note** : Le script `start:socket:with-migrations` lance automatiquement les migrations Prisma avant de démarrer Socket.io.
    - **Plan** : **Free**
 
 5. Cliquez sur **"Advanced"** pour ajouter les variables d'environnement :
@@ -132,7 +132,9 @@ Créez une base PostgreSQL locale ou utilisez une base de test pour vérifier qu
    - **Root Directory** : `/` (laisser vide)
    - **Runtime** : `Node`
    - **Build Command** : `npm install && npm run build`
-   - **Start Command** : `npm start`
+   - **Start Command** : `npm run start:with-migrations`
+   
+   ⚠️ **Note** : Le script `start:with-migrations` lance automatiquement les migrations Prisma avant de démarrer Next.js.
    - **Plan** : **Free**
 
 5. Cliquez sur **"Advanced"** pour ajouter les variables d'environnement :
@@ -204,20 +206,17 @@ Maintenant que vous avez les deux URLs, vous devez les ajouter :
 
 ---
 
-## 🚀 ÉTAPE 7 : Lancer les migrations Prisma
+## 🚀 ÉTAPE 7 : Les migrations Prisma (automatiques !)
 
-Une fois les services déployés, vous devez créer les tables dans la base de données :
+✅ **Bonne nouvelle** : Les migrations Prisma sont maintenant lancées **automatiquement** au démarrage de chaque service !
 
-1. Allez dans votre service **Next.js** (`ikram-jeu-nextjs`)
-2. Cliquez sur **"Shell"** dans le menu de gauche
-3. Dans le terminal qui s'ouvre, exécutez :
+Les scripts `start:with-migrations` et `start:socket:with-migrations` exécutent les migrations avant de démarrer les serveurs. Vous n'avez **rien à faire manuellement**.
 
-   ```bash
-   npx prisma migrate deploy
-   ```
+Si vous voyez dans les logs :
+- `✅ Migrations Prisma appliquées avec succès` → Tout est OK
+- `⚠️ Erreur lors des migrations (peut être normal si déjà appliquées)` → C'est normal si les migrations ont déjà été appliquées
 
-4. Attendez que les migrations soient appliquées
-5. Vous devriez voir un message de succès
+**Note** : Si vous aviez besoin d'utiliser le Shell (plan payant), ce n'est plus nécessaire avec cette solution !
 
 ---
 
