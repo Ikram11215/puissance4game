@@ -20,6 +20,7 @@ export default function GamePage() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [wantsRematch, setWantsRematch] = useState(false);
   const [lastMove, setLastMove] = useState<{ row: number; column: number } | null>(null);
   const [gameEndReason, setGameEndReason] = useState<string | null>(null);
 
@@ -103,6 +104,8 @@ export default function GamePage() {
         }
       };
       setRoom(updatedRoom);
+      setWantsRematch(false); // je réinitialise le statut de rejouer
+      setIsReady(false); // je réinitialise aussi le statut prêt
       if (data.reason === 'abandon') {
         setGameEndReason('abandon');
         setError("");
@@ -136,6 +139,30 @@ export default function GamePage() {
       setError("Un joueur a quitté la partie");
     });
 
+    socket.on('rematch-requested', (data: { room: Room }) => {
+      setRoom(data.room);
+      const me = data.room.players.find(p => p.userId === user?.id);
+      if (me) {
+        if (me.isReady) {
+          setWantsRematch(true);
+        } else {
+          setWantsRematch(false);
+        }
+      }
+    });
+
+    socket.on('rematch-started', (data: { room: Room }) => {
+      setRoom(data.room);
+      setWantsRematch(false);
+      setIsReady(false);
+      setGameEndReason(null);
+      setError("");
+      const me = data.room.players.find(p => p.userId === user?.id);
+      if (me) {
+        setMyColor(me.color);
+      }
+    });
+
     socket.on('error', (data: { message: string }) => {
       setError(data.message);
       console.error('Socket error:', data.message);
@@ -153,6 +180,8 @@ export default function GamePage() {
       socket.off('player-disconnected');
       socket.off('player-reconnected');
       socket.off('player-left');
+      socket.off('rematch-requested');
+      socket.off('rematch-started');
       socket.off('error');
     };
   }, [roomId, user, authLoading, router]);
@@ -194,9 +223,19 @@ export default function GamePage() {
     router.push('/lobby');
   };
 
+  // fonction pr demander à rejouer
+  const handleRematch = () => {
+    if (!wantsRematch) {
+      const socket = getSocket();
+      socket.emit('request-rematch', { roomId });
+      setWantsRematch(true);
+    }
+  };
+
   // fonction pr lancer une nouvelle partie
   const handleNewGame = () => {
     setGameEndReason(null);
+    setWantsRematch(false);
     disconnectSocket();
     router.push('/lobby');
   };
@@ -306,9 +345,37 @@ export default function GamePage() {
                   <span>Votre adversaire a quitté la partie. Vous avez gagné par abandon !</span>
                 </div>
               )}
-              <button onClick={handleNewGame} className="btn btn-primary w-full gap-2">
-                <IoRefresh />
-                Nouvelle partie
+              
+              {/* Système de rejouer */}
+              <div className="alert alert-info">
+                <div className="flex flex-col gap-2">
+                  <span className="font-bold">Partie terminée</span>
+                  {room.players.length === 2 && (
+                    <>
+                      {!wantsRematch && (
+                        <button onClick={handleRematch} className="btn btn-primary btn-sm w-full">
+                          <IoRefresh />
+                          Rejouer
+                        </button>
+                      )}
+                      {wantsRematch && (
+                        <div className="flex flex-col gap-2">
+                          <span className="text-sm">Vous voulez rejouer</span>
+                          {room.players.every(p => p.isReady) ? (
+                            <span className="text-sm text-success">Les deux joueurs sont prêts ! La partie va redémarrer...</span>
+                          ) : (
+                            <span className="text-sm">En attente de l'adversaire...</span>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              <button onClick={handleNewGame} className="btn btn-ghost w-full gap-2">
+                <IoArrowBack />
+                Retour au lobby
               </button>
             </div>
           )}

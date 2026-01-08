@@ -163,6 +163,15 @@ io.on('connection', (socket) => {
         const allConnected = room.players.every(p => !p.disconnected);
         if (allConnected) {
           room.board.status = 'playing';
+          
+          // je mets à jour la bdd
+          await prisma.game.update({
+            where: { roomId: data.roomId },
+            data: { 
+              status: 'playing'
+            },
+          });
+          
           io.to(data.roomId).emit('player-reconnected', { room });
           console.log(`Joueur reconnecté, partie reprend dans la room ${data.roomId}`);
         } else {
@@ -242,6 +251,51 @@ io.on('connection', (socket) => {
     } else {
       // sinon j'envoie juste la mise à jour
       io.to(data.roomId).emit('player-ready-update', { room });
+    }
+  });
+
+  // gestion de la demande de rejouer (rematch)
+  socket.on('request-rematch', async (data: { roomId: string }) => {
+    const room = rooms.get(data.roomId);
+    if (!room) return;
+
+    // je marque le joueur comme prêt pour rejouer
+    const player = room.players.find(p => p.id === socket.id);
+    if (player) {
+      player.isReady = true;
+    }
+
+    // j'envoie la mise à jour à tous les joueurs
+    io.to(data.roomId).emit('rematch-requested', { room });
+
+    // si les 2 joueurs sont prêts, je relance la partie
+    if (room.players.length === 2 && room.players.every(p => p.isReady)) {
+      // je réinitialise le plateau
+      room.board = {
+        grid: createEmptyBoard(),
+        currentPlayer: 'red',
+        winner: null,
+        status: 'playing'
+      };
+
+      // je réinitialise les états des joueurs
+      room.players.forEach(p => {
+        p.isReady = false;
+      });
+
+      // je mets à jour la bdd (créer une nouvelle partie ou réinitialiser)
+      await prisma.game.update({
+        where: { roomId: data.roomId },
+        data: { 
+          status: 'playing',
+          winner: null,
+          startedAt: new Date(),
+          finishedAt: null
+        },
+      });
+
+      io.to(data.roomId).emit('rematch-started', { room });
+      console.log(`Partie relancée (rematch) dans la room ${data.roomId}`);
     }
   });
 
@@ -376,76 +430,31 @@ io.on('connection', (socket) => {
       if (playerIndex !== -1) {
         const disconnectedPlayer = room.players[playerIndex];
         
-        // si la partie est en cours et qu'il y a 2 joueurs, je déclare l'autre gagnant
+        // si la partie est en cours et qu'il y a 2 joueurs, je mets la partie en pause
         if (room.board.status === 'playing' && room.players.length === 2) {
           const remainingPlayer = room.players.find(p => p.id !== socket.id);
           
           if (remainingPlayer) {
-            room.board.winner = remainingPlayer.color;
-            room.board.status = 'finished';
+            // je marque le joueur comme déconnecté mais je ne termine pas la partie
             disconnectedPlayer.disconnected = true;
+            disconnectedPlayer.id = ''; // je retire le socket id pour permettre la reconnexion
+            room.board.status = 'paused';
             
-            // je récupère la partie depuis la bdd
-            const game = await prisma.game.findUnique({
-              where: { roomId: roomId },
-              include: { redPlayer: true, yellowPlayer: true }
-            });
-
-            if (game && game.yellowPlayerId) {
-              try {
-                // je calcule qui a gagné et qui a perdu
-                const winnerId = remainingPlayer.color === 'red' ? game.redPlayerId : game.yellowPlayerId;
-                const loserId = remainingPlayer.color === 'red' ? game.yellowPlayerId : game.redPlayerId;
-                
-                const winnerUser = await prisma.user.findUnique({ where: { id: winnerId } });
-                const loserUser = await prisma.user.findUnique({ where: { id: loserId } });
-                
-                if (winnerUser && loserUser) {
-                  // je calcule le changement d'elo
-                  const eloChange = calculateEloChange(winnerUser.elo, loserUser.elo, false);
-                  
-                  // je mets à jour les stats
-                  await prisma.user.update({
-                    where: { id: winnerId },
-                    data: { 
-                      wins: { increment: 1 },
-                      elo: { increment: eloChange.winnerChange }
-                    }
-                  });
-                  
-                  await prisma.user.update({
-                    where: { id: loserId },
-                    data: { 
-                      losses: { increment: 1 },
-                      elo: { increment: eloChange.loserChange }
-                    }
-                  });
-                  
-                  console.log(`Victoire par abandon: ${winnerUser.pseudo} (+${eloChange.winnerChange} ELO), Défaite: ${loserUser.pseudo} (${eloChange.loserChange} ELO)`);
-                }
-              } catch (error) {
-                console.error('Erreur mise à jour stats après abandon:', error);
-              }
-            }
-            
-            // je mets à jour la partie ds la bdd
+            // je mets à jour la partie ds la bdd (status paused, pas finished)
             await prisma.game.update({
               where: { roomId: roomId },
               data: { 
-                status: 'finished',
-                winner: remainingPlayer.color,
-                finishedAt: new Date()
+                status: 'paused'
               },
             });
 
-            // j'envoie l'événement de fin de partie
-            io.to(roomId).emit('game-over', { 
+            // j'envoie l'événement de déconnexion (pas de fin de partie)
+            io.to(roomId).emit('player-disconnected', { 
               room, 
-              winner: remainingPlayer.color,
-              reason: 'abandon'
+              disconnectedPlayer: disconnectedPlayer.pseudo
             });
             
-            console.log(`Partie terminée par abandon dans la room ${roomId}, vainqueur: ${remainingPlayer.pseudo}`);
+            console.log(`Joueur déconnecté dans la room ${roomId}: ${disconnectedPlayer.pseudo}, partie en pause`);
           }
         } else if (room.board.status === 'waiting' || room.board.status === 'paused') {
           // si la partie n'a pas commencé ou est en pause, je retire juste le joueur
