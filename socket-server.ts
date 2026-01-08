@@ -9,7 +9,16 @@ import { calculateEloChange } from './lib/game/elo';
 // j'initialise prisma pr gérer la bdd
 const prisma = new PrismaClient();
 // je crée le serveur http
-const httpServer = createServer();
+const httpServer = createServer((req, res) => {
+  // route de santé pour que Render détecte le service
+  if (req.url === '/' || req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', service: 'socket.io' }));
+    return;
+  }
+  res.writeHead(404);
+  res.end('Not found');
+});
 // je configure socket.io avc cors pr accepter les connexions
 // en production, j'utilise l'URL de l'app depuis les variables d'env
 const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -459,8 +468,9 @@ io.on('connection', (socket) => {
 // je récupère le port depuis les variables d'env (Render utilise PORT, sinon SOCKET_PORT, sinon 3001)
 const PORT = process.env.PORT || process.env.SOCKET_PORT || 3001;
 
-// je démarre le serveur
-httpServer.listen(PORT, () => {
+// je démarre le serveur (0.0.0.0 pour que Render puisse le détecter)
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Serveur Socket.IO démarré sur le port ${PORT}`);
+  console.log(`📍 Accessible sur http://0.0.0.0:${PORT}`);
 });
 
