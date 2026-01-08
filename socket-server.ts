@@ -466,7 +466,8 @@ io.on('connection', (socket) => {
 });
 
 // je récupère le port depuis les variables d'env (Render utilise PORT, sinon SOCKET_PORT, sinon 3001)
-const PORT = process.env.PORT || process.env.SOCKET_PORT || 3001;
+// je convertis en nombre car process.env retourne des strings
+const PORT = parseInt(process.env.PORT || process.env.SOCKET_PORT || '3001', 10);
 
 // je démarre le serveur (0.0.0.0 pour que Render puisse le détecter)
 httpServer.listen(PORT, '0.0.0.0', () => {
