@@ -98,7 +98,7 @@ export async function registerUser(formData: {
       // je retourne quand même un succès mais avec un avertissement
       return { 
         success: true, 
-        message: "Inscription réussie ! Cependant, l'email de vérification n'a pas pu être envoyé. Vérifiez votre configuration Resend ou contactez le support.",
+        message: "Inscription réussie ! Cependant, l'email de vérification n'a pas pu être envoyé. Vérifiez votre configuration Brevo ou contactez le support.",
         user: { id: user.id, email: user.email, pseudo: user.pseudo },
         emailSent: false,
         emailError: emailResult.error

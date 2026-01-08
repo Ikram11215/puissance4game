@@ -46,7 +46,7 @@ export default function RegisterPage() {
       if (result.emailSent === false) {
         setError(
           "Inscription réussie, mais l'email de vérification n'a pas pu être envoyé. " +
-          "Vérifiez votre configuration Resend dans les logs Render."
+          "Vérifiez votre configuration Brevo dans les logs Render."
         );
       } else {
         setSuccess(result.message || "Inscription réussie !");

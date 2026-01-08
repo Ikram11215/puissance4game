@@ -11,10 +11,12 @@ services:
         value: production
       - key: DATABASE_URL
         sync: false  # À configurer manuellement dans le dashboard
-      - key: RESEND_API_KEY
-        sync: false  # À configurer manuellement
-      - key: RESEND_FROM_EMAIL
-        sync: false  # À configurer manuellement
+      - key: BREVO_API_KEY
+        sync: false  # À configurer manuellement dans le dashboard
+      - key: BREVO_FROM_EMAIL
+        sync: false  # À configurer manuellement (ex: noreply@example.com)
+      - key: BREVO_FROM_NAME
+        sync: false  # À configurer manuellement (ex: Puissance 4)
       - key: NEXT_PUBLIC_APP_URL
         sync: false  # URL de votre app Render (ex: https://ikram-jeu.onrender.com)
       - key: NEXT_PUBLIC_SOCKET_URL
