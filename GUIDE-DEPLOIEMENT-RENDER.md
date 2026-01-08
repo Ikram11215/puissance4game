@@ -92,6 +92,8 @@ Créez une base PostgreSQL locale ou utilisez une base de test pour vérifier qu
    - **Runtime** : `Node`
    - **Build Command** : `npm install && npx prisma generate`
    - **Start Command** : `npm run start:socket`
+   
+   ⚠️ **Note** : Le script utilise `tsx` pour exécuter TypeScript directement en production.
    - **Plan** : **Free**
 
 5. Cliquez sur **"Advanced"** pour ajouter les variables d'environnement :
