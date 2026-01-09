@@ -11,6 +11,7 @@
     "start:with-migrations": "node scripts/start-with-migrations.js",
     "start:socket": "tsx socket-server.ts",
     "start:socket:with-migrations": "node scripts/start-socket-with-migrations.js",
+    "resolve-migrations": "node scripts/resolve-failed-migrations.js",
     "lint": "eslint"
   },
   "dependencies": {
