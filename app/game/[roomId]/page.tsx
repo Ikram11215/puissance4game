@@ -8,7 +8,8 @@ import { getSocket, disconnectSocket } from "@/lib/socket/client";
 import type { Room, Player } from "@/lib/game/types";
 import Board from "@/components/game/Board";
 import GameInfo from "@/components/game/GameInfo";
-import { IoCopy, IoCheckmark, IoArrowBack, IoRefresh, IoVolumeHigh, IoVolumeMute } from "react-icons/io5";
+import { IoCopy, IoCheckmark, IoArrowBack, IoRefresh, IoVolumeHigh, IoVolumeMute, IoPersonAdd, IoPause, IoPlay } from "react-icons/io5";
+import { showNotification } from "@/components/ui/NotificationManager";
 
 export default function GamePage() {
   const params = useParams();
@@ -60,6 +61,12 @@ export default function GamePage() {
     socket.on('player-joined', (data: { room: Room }) => {
       console.log('Player joined received:', data.room, 'players:', data.room.players.length);
       setRoom(data.room);
+      if (data.room.players.length === 2 && user) {
+        const otherPlayer = data.room.players.find(p => p.userId !== user.id);
+        if (otherPlayer) {
+          showNotification(`${otherPlayer.pseudo} a rejoint la partie !`, 'success');
+        }
+      }
       const me = data.room.players.find(p => p.id === socket.id || p.userId === user?.id);
       if (me && socket.id) {
         setMyColor(me.color);
@@ -80,6 +87,7 @@ export default function GamePage() {
     socket.on('game-start', (data: { room: Room }) => {
       setRoom(data.room);
       sounds.playGameStart();
+      showNotification('La partie commence !', 'info');
       if (!myColor) {
         const me = data.room.players.find(p => p.userId === user?.id);
         if (me) setMyColor(me.color);
@@ -133,7 +141,7 @@ export default function GamePage() {
 
     socket.on('player-disconnected', (data: { room: Room, disconnectedPlayer: string }) => {
       setRoom(data.room);
-      setError(`${data.disconnectedPlayer} s'est déconnecté. La partie est en pause...`);
+      showNotification(`${data.disconnectedPlayer} s'est déconnecté. La partie est en pause...`, 'warning');
       if (!myColor) {
         const me = data.room.players.find(p => p.userId === user?.id);
         if (me) setMyColor(me.color);
@@ -144,6 +152,7 @@ export default function GamePage() {
       setRoom(data.room);
       setError("");
       sounds.playNotification();
+      showNotification('Joueur reconnecté ! La partie reprend.', 'success');
       if (!myColor) {
         const me = data.room.players.find(p => p.userId === user?.id);
         if (me) setMyColor(me.color);
@@ -174,6 +183,7 @@ export default function GamePage() {
       setGameEndReason(null);
       setError("");
       sounds.playGameStart();
+      showNotification('Nouvelle partie lancée !', 'success');
       const me = data.room.players.find(p => p.userId === user?.id);
       if (me) {
         setMyColor(me.color);
@@ -276,70 +286,110 @@ export default function GamePage() {
   const hasDisconnectedPlayer = room.players.some(p => p.disconnected);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {error && (
-        <div className="alert alert-error mb-4">
-          <span>{error}</span>
-        </div>
-      )}
+    <div className="min-h-screen bg-gradient-to-br from-base-100 via-base-200 to-base-300">
+      <div className="container mx-auto px-4 py-8">
+        {error && (
+          <div className="mb-6 animate-fade-in">
+            <div className="alert alert-error shadow-lg border-2">
+              <span className="font-semibold">{error}</span>
+            </div>
+          </div>
+        )}
 
-      <div className="flex justify-between items-center mb-6">
-        <button onClick={handleBackToLobby} className="btn btn-ghost gap-2">
-          <IoArrowBack />
-          Retour au lobby
-        </button>
-
-        <div className="flex items-center gap-2">
-          <code className="bg-base-200 px-4 py-2 rounded">{roomId}</code>
-          <button
-            onClick={handleCopyRoomId}
-            className="btn btn-square btn-ghost"
-            title="Copier le code"
+        <div className="flex justify-between items-center mb-8">
+          <button 
+            onClick={handleBackToLobby} 
+            className="btn btn-ghost gap-2 hover:btn-primary transition-all duration-300 shadow-md"
           >
-            {copied ? <IoCheckmark className="text-success" /> : <IoCopy />}
+            <IoArrowBack />
+            Retour au lobby
           </button>
-          <button
-            onClick={sounds.toggleSounds}
-            className="btn btn-square btn-ghost"
-            title={sounds.enabled ? "Désactiver les sons" : "Activer les sons"}
-          >
-            {sounds.enabled ? <IoVolumeHigh /> : <IoVolumeMute />}
-          </button>
-        </div>
-      </div>
 
-      {isPaused && (
-        <div className="alert alert-warning mb-6">
-          <div className="flex flex-col gap-2">
-            <span className="font-bold">Partie en pause</span>
-            <span>
-              {hasDisconnectedPlayer 
-                ? "Un joueur s'est déconnecté. La partie reprendra à sa reconnexion."
-                : "Attente de reconnexion..."}
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-r from-primary/20 to-secondary/20 backdrop-blur-sm px-5 py-2.5 rounded-xl border-2 border-primary/30 shadow-lg">
+              <code className="text-sm font-mono font-bold">{roomId}</code>
+            </div>
+            <button
+              onClick={handleCopyRoomId}
+              className="btn btn-square btn-ghost hover:btn-primary transition-all duration-300 shadow-md"
+              title="Copier le code"
+            >
+              {copied ? <IoCheckmark className="text-success text-xl" /> : <IoCopy className="text-xl" />}
+            </button>
+            <button
+              onClick={sounds.toggleSounds}
+              className="btn btn-square btn-ghost hover:btn-primary transition-all duration-300 shadow-md"
+              title={sounds.enabled ? "Désactiver les sons" : "Activer les sons"}
+            >
+              {sounds.enabled ? <IoVolumeHigh className="text-xl" /> : <IoVolumeMute className="text-xl" />}
+            </button>
           </div>
         </div>
-      )}
 
-      {isWaiting && (
-        <div className="alert alert-info mb-6">
-          <div className="flex flex-col gap-2">
-            <span>
-              {room.players.length === 1
-                ? "En attente d'un adversaire... Partagez le code de la partie !"
-                : "Les deux joueurs sont connectés !"}
-            </span>
-            {room.players.length === 2 && !isReady && (
-              <button onClick={handleReady} className="btn btn-primary btn-sm">
-                Je suis prêt !
-              </button>
-            )}
-            {isReady && <span className="text-sm">En attente de l'adversaire...</span>}
+        {isPaused && (
+          <div className="mb-6 animate-fade-in">
+            <div className="card bg-warning/10 border-2 border-warning shadow-2xl backdrop-blur-sm">
+              <div className="card-body">
+                <div className="flex items-center gap-3">
+                  <IoPause className="text-3xl text-warning animate-pulse" />
+                  <div className="flex-1">
+                    <h3 className="card-title text-warning">Partie en pause</h3>
+                    <p className="text-warning-content/80">
+                      {hasDisconnectedPlayer 
+                        ? "Un joueur s'est déconnecté. La partie reprendra automatiquement à sa reconnexion."
+                        : "Attente de reconnexion..."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="grid lg:grid-cols-3 gap-8">
+        {isWaiting && (
+          <div className="mb-6 animate-fade-in">
+            <div className="card bg-info/10 border-2 border-info shadow-2xl backdrop-blur-sm">
+              <div className="card-body">
+                <div className="flex items-center gap-3">
+                  {room.players.length === 1 ? (
+                    <IoPersonAdd className="text-3xl text-info animate-bounce" />
+                  ) : (
+                    <IoCheckmarkCircle className="text-3xl text-success" />
+                  )}
+                  <div className="flex-1">
+                    <h3 className="card-title text-info">
+                      {room.players.length === 1
+                        ? "En attente d'un adversaire"
+                        : "Les deux joueurs sont connectés !"}
+                    </h3>
+                    <p className="text-info-content/80 mb-3">
+                      {room.players.length === 1
+                        ? "Partagez le code de la partie avec votre adversaire !"
+                        : "Cliquez sur 'Je suis prêt' pour commencer la partie."}
+                    </p>
+                    {room.players.length === 2 && !isReady && (
+                      <button 
+                        onClick={handleReady} 
+                        className="btn btn-primary btn-lg shadow-lg hover:scale-105 transition-transform"
+                      >
+                        <IoCheckmarkCircle className="text-xl" />
+                        Je suis prêt !
+                      </button>
+                    )}
+                    {isReady && (
+                      <div className="flex items-center gap-2 text-info">
+                        <span className="loading loading-spinner loading-sm"></span>
+                        <span className="font-semibold">En attente de l'adversaire...</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 flex justify-center items-center">
           <Board
             grid={room.board.grid}
@@ -360,40 +410,56 @@ export default function GamePage() {
           />
 
           {isFinished && (
-            <div className="mt-4 space-y-2">
+            <div className="mt-6 space-y-4 animate-fade-in">
               {gameEndReason === 'abandon' && (
-                <div className="alert alert-warning">
-                  <span>Votre adversaire a quitté la partie. Vous avez gagné par abandon !</span>
+                <div className="card bg-warning/10 border-2 border-warning shadow-xl">
+                  <div className="card-body py-4">
+                    <p className="font-semibold text-warning">
+                      Votre adversaire a quitté la partie. Vous avez gagné par abandon !
+                    </p>
+                  </div>
                 </div>
               )}
               
-              <div className="alert alert-info">
-                <div className="flex flex-col gap-2">
-                  <span className="font-bold">Partie terminée</span>
+              <div className="card bg-gradient-to-br from-primary/20 to-secondary/20 border-2 border-primary/30 shadow-2xl backdrop-blur-sm">
+                <div className="card-body">
+                  <h3 className="card-title text-lg mb-4">Partie terminée</h3>
                   {room.players.length === 2 && (
-                    <>
+                    <div className="space-y-3">
                       {!wantsRematch && (
-                        <button onClick={handleRematch} className="btn btn-primary btn-sm w-full">
-                          <IoRefresh />
+                        <button 
+                          onClick={handleRematch} 
+                          className="btn btn-primary btn-lg w-full shadow-lg hover:scale-105 transition-transform gap-2"
+                        >
+                          <IoRefresh className="text-xl" />
                           Rejouer
                         </button>
                       )}
                       {wantsRematch && (
-                        <div className="flex flex-col gap-2">
-                          <span className="text-sm">Vous voulez rejouer</span>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-primary">
+                            <span className="loading loading-spinner loading-sm"></span>
+                            <span className="font-semibold">Vous voulez rejouer</span>
+                          </div>
                           {room.players.every(p => p.isReady) ? (
-                            <span className="text-sm text-success">Les deux joueurs sont prêts ! La partie va redémarrer...</span>
+                            <div className="alert alert-success shadow-md">
+                              <IoCheckmarkCircle className="text-xl" />
+                              <span className="font-semibold">Les deux joueurs sont prêts ! La partie va redémarrer...</span>
+                            </div>
                           ) : (
-                            <span className="text-sm">En attente de l'adversaire...</span>
+                            <p className="text-sm text-base-content/70">En attente de l'adversaire...</p>
                           )}
                         </div>
                       )}
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
               
-              <button onClick={handleNewGame} className="btn btn-ghost w-full gap-2">
+              <button 
+                onClick={handleNewGame} 
+                className="btn btn-ghost w-full gap-2 hover:btn-primary transition-all duration-300 shadow-md"
+              >
                 <IoArrowBack />
                 Retour au lobby
               </button>
