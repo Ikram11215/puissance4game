@@ -124,7 +124,9 @@ io.on('connection', (socket) => {
 
     const existingPlayerBySocket = room.players.find(p => p.id === socket.id);
     if (existingPlayerBySocket) {
+      socket.join(data.roomId);
       socket.emit('room-joined', { room });
+      io.to(data.roomId).emit('player-joined', { room });
       return;
     }
 
@@ -153,9 +155,11 @@ io.on('connection', (socket) => {
           console.log(`Joueur reconnecté, partie reprend dans la room ${data.roomId}`);
         } else {
           socket.emit('room-joined', { room });
+          io.to(data.roomId).emit('player-joined', { room });
         }
       } else {
         socket.emit('room-joined', { room });
+        io.to(data.roomId).emit('player-joined', { room });
       }
       console.log(`Joueur rejoint la room ${data.roomId} (reconnexion)`);
       return;
@@ -191,7 +195,7 @@ io.on('connection', (socket) => {
 
     socket.emit('room-joined', { room });
     io.to(data.roomId).emit('player-joined', { room });
-    console.log(`Joueur rejoint la room ${data.roomId}`);
+    console.log(`Joueur ${data.pseudo} rejoint la room ${data.roomId}, ${room.players.length} joueur(s) dans la room`);
   });
 
   socket.on('player-ready', async (data: { roomId: string }) => {

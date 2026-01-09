@@ -38,9 +38,11 @@ export default function GamePage() {
 
     socket.emit('join-room', { roomId, pseudo: user.pseudo, userId: user.id });
 
-    socket.on('room-created', (data: { room: Room }) => {
+    socket.on('room-created', (data: { roomId: string, room: Room }) => {
+      console.log('Room created received:', data);
       setRoom(data.room);
       setMyColor('red');
+      socket.join(roomId);
     });
 
     socket.on('room-joined', (data: { room: Room }) => {
@@ -57,6 +59,7 @@ export default function GamePage() {
     });
 
     socket.on('player-joined', (data: { room: Room }) => {
+      console.log('Player joined received:', data.room, 'players:', data.room.players.length);
       setRoom(data.room);
       const me = data.room.players.find(p => p.id === socket.id || p.userId === user?.id);
       if (me && socket.id) {
