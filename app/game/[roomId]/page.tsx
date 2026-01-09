@@ -112,7 +112,7 @@ export default function GamePage() {
       setIsReady(false);
       
       if (user && myColor) {
-        const winner = data.winner || data.room.board.winner;
+        const winner: Player | 'draw' | null | undefined = data.winner || data.room.board.winner;
         if (winner === 'draw') {
           sounds.playDraw();
         } else if (winner === myColor) {
