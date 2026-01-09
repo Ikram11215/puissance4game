@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// route api pr récupérer l'historique des parties d'un utilisateur
 export async function GET(request: NextRequest) {
   try {
-    // je récupère le userId depuis les paramètres
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId');
 
@@ -14,7 +12,6 @@ export async function GET(request: NextRequest) {
 
     const userIdNum = parseInt(userId);
 
-    // je récupère toutes les parties où l'utilisateur a joué
     const games = await prisma.game.findMany({
       where: {
         OR: [
@@ -30,16 +27,13 @@ export async function GET(request: NextRequest) {
           select: { pseudo: true, firstname: true, lastname: true }
         }
       },
-      // je trie par date décroissante
       orderBy: {
         createdAt: 'desc'
       }
     });
 
-    // je filtre les parties terminées pr calculer les stats
     const finishedGames = games.filter(g => g.status === 'finished');
     
-    // je calcule les stats (wins, losses, draws)
     const stats = {
       wins: finishedGames.filter(g => {
         if (g.winner === 'draw') return false;
@@ -62,6 +56,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
-
-
-

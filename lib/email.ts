@@ -1,17 +1,13 @@
 import * as brevo from '@getbrevo/brevo';
 
-// j'initialise l'API Brevo avec la clé api
 const apiInstance = new brevo.TransactionalEmailsApi();
 if (process.env.BREVO_API_KEY) {
   apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
 }
 
-// fonction pr envoyer l'email de vérification
 export async function sendVerificationEmail(email: string, token: string, firstname: string) {
-  // je crée l'url de vérification
   const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
   
-  // mode développement : si BREVO_API_KEY n'est pas configurée, on affiche juste le lien dans les logs
   if (!process.env.BREVO_API_KEY || process.env.BREVO_API_KEY === 'ta_cle_api_brevo') {
     console.log('═══════════════════════════════════════════════════════════');
     console.log('📧 MODE DÉVELOPPEMENT - Email de vérification (non envoyé)');
@@ -26,11 +22,9 @@ export async function sendVerificationEmail(email: string, token: string, firstn
   }
   
   try {
-    // j'utilise l'email configuré ou un email par défaut
     const fromEmail = process.env.BREVO_FROM_EMAIL || 'noreply@example.com';
     const fromName = process.env.BREVO_FROM_NAME || 'Puissance 4';
     
-    // je crée l'objet email pour Brevo
     const sendSmtpEmail = new brevo.SendSmtpEmail();
     sendSmtpEmail.subject = 'Vérifiez votre adresse email - Puissance 4';
     sendSmtpEmail.htmlContent = `
@@ -59,14 +53,12 @@ export async function sendVerificationEmail(email: string, token: string, firstn
     sendSmtpEmail.sender = { name: fromName, email: fromEmail };
     sendSmtpEmail.to = [{ email }];
     
-    // j'envoie l'email avc Brevo
     const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
     
     console.log('Email envoyé avec succès via Brevo:', result);
     return { success: true, data: result };
   } catch (error: any) {
     console.error('Erreur envoi email Brevo:', error);
-    // j'extrais le message d'erreur détaillé
     const errorMessage = error?.response?.body?.message || error?.message || error?.toString() || 'Erreur inconnue lors de l\'envoi de l\'email';
     const errorDetails = error?.response?.body || error;
     console.error('Détails de l\'erreur:', JSON.stringify(errorDetails, null, 2));
@@ -78,4 +70,3 @@ export async function sendVerificationEmail(email: string, token: string, firstn
     };
   }
 }
-

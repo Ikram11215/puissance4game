@@ -24,9 +24,7 @@ export default function GamePage() {
   const [lastMove, setLastMove] = useState<{ row: number; column: number } | null>(null);
   const [gameEndReason, setGameEndReason] = useState<string | null>(null);
 
-  // je gère la connexion à la room et les événements socket
   useEffect(() => {
-    // si pas connecté, je redirige vers login
     if (!authLoading && !user) {
       router.push("/login");
       return;
@@ -34,7 +32,6 @@ export default function GamePage() {
 
     if (!user) return;
 
-    // je récupère le socket et je rejoins la room
     const socket = getSocket();
 
     socket.emit('join-room', { roomId, pseudo: user.pseudo, userId: user.id });
@@ -104,8 +101,8 @@ export default function GamePage() {
         }
       };
       setRoom(updatedRoom);
-      setWantsRematch(false); // je réinitialise le statut de rejouer
-      setIsReady(false); // je réinitialise aussi le statut prêt
+      setWantsRematch(false);
+      setIsReady(false);
       if (data.reason === 'abandon') {
         setGameEndReason('abandon');
         setError("");
@@ -186,7 +183,6 @@ export default function GamePage() {
     };
   }, [roomId, user, authLoading, router]);
 
-  // je m'assure que ma couleur est définie
   useEffect(() => {
     if (room && user && !myColor) {
       const me = room.players.find(p => p.userId === user.id);
@@ -196,34 +192,29 @@ export default function GamePage() {
     }
   }, [room, user]);
 
-  // fonction pr dire que je suis prêt
   const handleReady = () => {
     const socket = getSocket();
     socket.emit('player-ready', { roomId });
     setIsReady(true);
   };
 
-  // fonction pr jouer un coup
   const handleMove = (column: number) => {
     if (!room || room.board.status !== 'playing') return;
     const socket = getSocket();
     socket.emit('make-move', { roomId, column });
   };
 
-  // fonction pr copier l'id de la room
   const handleCopyRoomId = () => {
     navigator.clipboard.writeText(roomId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // fonction pr retourner au lobby
   const handleBackToLobby = () => {
     disconnectSocket();
     router.push('/lobby');
   };
 
-  // fonction pr demander à rejouer
   const handleRematch = () => {
     if (!wantsRematch) {
       const socket = getSocket();
@@ -232,7 +223,6 @@ export default function GamePage() {
     }
   };
 
-  // fonction pr lancer une nouvelle partie
   const handleNewGame = () => {
     setGameEndReason(null);
     setWantsRematch(false);
@@ -346,7 +336,6 @@ export default function GamePage() {
                 </div>
               )}
               
-              {/* Système de rejouer */}
               <div className="alert alert-info">
                 <div className="flex flex-col gap-2">
                   <span className="font-bold">Partie terminée</span>
@@ -384,4 +373,3 @@ export default function GamePage() {
     </div>
   );
 }
-

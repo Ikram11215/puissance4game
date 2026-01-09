@@ -1,185 +1,262 @@
-# Puissance 4 en ligne
+# Puissance 4 Multiplayer
 
-un jeu de puissance 4 multijoueur en temps réel fait avc next.js et socket.io
+Un jeu de Puissance 4 multijoueur en temps réel développé avec Next.js, Socket.io et PostgreSQL.
 
-## c'est quoi le projet ?
+## Description
 
-c'est un jeu de puissance 4 qu'on peut jouer en ligne avc d'autres joueurs. tu peux :
-- t'inscrire et te connecter
-- créer une partie et partager un code pr que quelqu'un te rejoigne
-- jouer en temps réel
-- voir ton classement et tes stats
-- avoir un système d'elo pr voir qui est le meilleur
+Application web permettant de jouer au Puissance 4 en ligne avec d'autres joueurs en temps réel. Le projet inclut :
+- Système d'authentification avec vérification d'email
+- Création et rejoindre des parties via code de salle
+- Jeu en temps réel avec Socket.io
+- Système de classement avec ELO
+- Historique des parties
+- Gestion de la reconnexion et pause/reprise de partie
+- Système de rematch après une partie terminée
 
-## prérequis
+## Prérequis
 
-avant de commencer, il te faut :
-- node.js installé (version 18 ou plus)
-- une base de données mysql (j'utilise mamp perso)
-- npm ou yarn
+Avant de commencer, assurez-vous d'avoir installé :
+- **Node.js** (version 18 ou supérieure)
+- **PostgreSQL** (version 12 ou supérieure)
+- **npm** ou **yarn**
 
-## installation
+## Installation
 
-1. clone ou télécharge le projet
+### 1. Cloner le projet
 
-2. installe les dépendances :
+```bash
+git clone <url-du-repo>
+cd <nom-du-projet>
+```
+
+### 2. Installer les dépendances
+
 ```bash
 npm install
 ```
 
-3. configure le fichier .env
+### 3. Configuration de l'environnement
 
-crée un fichier `.env` à la racine du projet et mets ça dedans :
+Créez un fichier `.env` à la racine du projet avec le contenu suivant :
 
 ```env
-# url de la base de données mysql
-DATABASE_URL="mysql://root:root@localhost:8889/ikram-game"
+# URL de la base de données PostgreSQL
+DATABASE_URL="postgresql://user:password@localhost:5432/puissance4game"
 
-# clé api resend pr envoyer les emails (tu peux en créer une sur resend.com)
-RESEND_API_KEY="ta_cle_api_resend"
+# Clé API Brevo pour l'envoi d'emails (créer un compte sur brevo.com)
+BREVO_API_KEY="votre_cle_api_brevo"
+BREVO_FROM_EMAIL="votre_email_verifie@votredomaine.com"
+BREVO_FROM_NAME="Puissance 4"
 
-# url de l'app (en local c'est localhost:3000)
+# URL de l'application (en local)
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
-# port du serveur socket.io (par défaut 3001)
+# URL du serveur Socket.io (en local)
+NEXT_PUBLIC_SOCKET_URL="http://localhost:3001"
+
+# Port du serveur Socket.io (optionnel, par défaut 3001)
 SOCKET_PORT=3001
 ```
 
-**important** : 
-- remplace `root:root` par ton user et mdp mysql si c'est pas ça
-- remplace `localhost:8889` par ton host et port mysql si c'est différent
-- remplace `puissance4game` par le nom de ta base de données
-- mets ta vraie clé api resend (sinon les emails de vérification marcheront pas)
+**Important :**
+- Remplacez `user:password` par vos identifiants PostgreSQL
+- Remplacez `localhost:5432` par votre host et port PostgreSQL si différent
+- Remplacez `puissance4game` par le nom de votre base de données
+- Configurez votre clé API Brevo (sinon les emails de vérification ne fonctionneront pas)
+- En mode développement, si `BREVO_API_KEY` n'est pas configurée, les emails seront affichés dans les logs de la console
 
-4. crée la base de données
+### 4. Créer la base de données
 
-ouvre mysql et crée une base de données :
+Connectez-vous à PostgreSQL et créez la base de données :
+
 ```sql
 CREATE DATABASE puissance4game;
 ```
 
-ou fais-le depuis phpmyadmin si tu utilises mamp
+### 5. Lancer les migrations Prisma
 
-5. lance les migrations prisma
+Cela va créer les tables dans votre base de données :
 
-ça va créer les tables dans ta base de données :
 ```bash
 npx prisma migrate dev
 ```
 
-si ça te demande un nom de migration, mets ce que tu veux genre "init" ou "first_migration"
+Si vous êtes invité à donner un nom de migration, utilisez un nom descriptif comme `init` ou `initial_migration`.
 
-6. génère le client prisma
+### 6. Générer le client Prisma
 
 ```bash
 npx prisma generate
 ```
 
-## lancer le projet
+## Lancement du projet
 
-le projet a besoin de deux serveurs qui tournent en même temps :
-- le serveur next.js (port 3000)
-- le serveur socket.io (port 3001)
+Le projet nécessite deux serveurs qui doivent tourner simultanément :
+- Le serveur Next.js (port 3000)
+- Le serveur Socket.io (port 3001)
 
-**option 1 : tout lancer d'un coup (recommandé)**
+### Option 1 : Lancer les deux serveurs ensemble (recommandé)
 
 ```bash
 npm run dev:all
 ```
 
-ça lance les deux serveurs en même temps
+Cette commande lance les deux serveurs simultanément.
 
-**option 2 : lancer séparément**
+### Option 2 : Lancer les serveurs séparément
 
-dans un terminal :
+**Terminal 1 - Serveur Next.js :**
 ```bash
 npm run dev
 ```
 
-dans un autre terminal :
+**Terminal 2 - Serveur Socket.io :**
 ```bash
 npm run dev:socket
 ```
 
-une fois que c'est lancé, ouvre ton navigateur sur `http://localhost:3000`
+Une fois les serveurs lancés, ouvrez votre navigateur sur `http://localhost:3000`.
 
-## comment ça marche ?
+## Utilisation
 
-1. **inscription** : tu crées un compte, tu reçois un email de vérification, tu cliques dessus
-2. **créer une partie** : tu vas dans "jouer", tu crées une partie, tu récupères le code
-3. **rejoindre une partie** : quelqu'un d'autre peut rejoindre avc le code
-4. **jouer** : les deux joueurs cliquent "je suis prêt" et la partie commence
-5. **classement** : tes victoires/défaites sont comptées et ton elo change
+1. **Inscription** : Créez un compte, vous recevrez un email de vérification
+2. **Vérification** : Cliquez sur le lien dans l'email pour activer votre compte
+3. **Connexion** : Connectez-vous avec vos identifiants
+4. **Créer une partie** : Allez dans "Jouer", créez une partie et récupérez le code
+5. **Rejoindre une partie** : Un autre joueur peut rejoindre avec le code de la partie
+6. **Jouer** : Les deux joueurs cliquent sur "Je suis prêt" et la partie commence
+7. **Classement** : Vos victoires/défaites sont comptées et votre ELO évolue
 
-## structure du projet
+## Structure du projet
 
 ```
-ikram-jeu/
-├── app/                    # pages next.js
-│   ├── game/              # page de jeu
-│   ├── lobby/              # page pr créer/rejoindre une partie
-│   ├── login/              # page de connexion
-│   ├── register/           # page d'inscription
-│   ├── leaderboard/        # classement
-│   └── history/            # historique des parties
-├── components/             # composants react
-├── lib/                    # fonctions utilitaires
-│   ├── game/               # logique du jeu
-│   ├── socket/             # connexion socket.io
-│   └── prisma.ts           # client prisma
-├── actions/                # server actions next.js
-├── hooks/                  # hooks react
-├── prisma/                 # schéma et migrations
-└── socket-server.ts         # serveur socket.io
+.
+├── app/                    # Pages Next.js (App Router)
+│   ├── game/              # Page de jeu
+│   ├── lobby/             # Page pour créer/rejoindre une partie
+│   ├── login/             # Page de connexion
+│   ├── register/          # Page d'inscription
+│   ├── leaderboard/       # Classement
+│   └── history/           # Historique des parties
+├── components/            # Composants React réutilisables
+├── lib/                   # Fonctions utilitaires
+│   ├── game/              # Logique du jeu (mouvements, vérification gagnant)
+│   ├── socket/            # Connexion Socket.io client
+│   └── prisma.ts          # Client Prisma
+├── actions/               # Server Actions Next.js
+├── hooks/                 # Hooks React personnalisés
+├── prisma/                # Schéma Prisma et migrations
+├── scripts/               # Scripts de démarrage avec migrations
+└── socket-server.ts        # Serveur Socket.io
 ```
 
-## commandes utiles
+## Commandes disponibles
 
 ```bash
-# lancer le projet
+# Développement - lancer les deux serveurs
 npm run dev:all
 
-# juste next.js
+# Développement - serveur Next.js uniquement
 npm run dev
 
-# juste socket.io
+# Développement - serveur Socket.io uniquement
 npm run dev:socket
 
-# créer une migration après avoir modifié le schema
+# Production - build
+npm run build
+
+# Production - démarrer Next.js
+npm start
+
+# Production - démarrer avec migrations automatiques
+npm run start:with-migrations
+
+# Production - démarrer Socket.io avec migrations
+npm run start:socket:with-migrations
+
+# Créer une migration après modification du schéma
 npx prisma migrate dev
 
-# régénérer le client prisma
+# Régénérer le client Prisma
 npx prisma generate
 
-# voir la base de données dans prisma studio
+# Ouvrir Prisma Studio (interface graphique pour la BDD)
 npx prisma studio
+
+# Linter
+npm run lint
 ```
 
-## problèmes courants
+## Fonctionnalités
 
-**le serveur socket.io se connecte pas**
-- vérifie que le port 3001 est libre
-- vérifie que tu as bien lancé `npm run dev:socket` ou `npm run dev:all`
+### Système de jeu
+- Jeu en temps réel avec Socket.io
+- Gestion des tours de jeu
+- Détection automatique du gagnant (4 jetons alignés)
+- Gestion des matchs nuls
+- Système de pause/reprise si un joueur se déconnecte
+- Possibilité de rejouer une partie après la fin
 
-**erreur de connexion à la base de données**
-- vérifie que mysql tourne
-- vérifie les infos dans le .env (user, mdp, port, nom de la bdd)
-- vérifie que la base de données existe
+### Système d'authentification
+- Inscription avec validation des données
+- Vérification d'email via Brevo
+- Connexion sécurisée avec hashage des mots de passe (bcrypt)
+- Gestion des sessions
 
-**les emails de vérification arrivent pas**
-- vérifie ta clé api resend dans le .env
-- vérifie que tu as bien configuré resend.com
-- regarde les logs du serveur pr voir les erreurs
+### Système de classement
+- Calcul ELO après chaque partie
+- Statistiques (victoires, défaites, matchs nuls)
+- Classement global des joueurs
+- Historique des parties
 
-**prisma dit que les tables existent pas**
-- lance `npx prisma migrate dev` pr créer les tables
-- vérifie que la base de données existe bien
+## Dépannage
 
-## notes
+### Le serveur Socket.io ne se connecte pas
+- Vérifiez que le port 3001 est libre
+- Vérifiez que vous avez bien lancé `npm run dev:socket` ou `npm run dev:all`
+- Vérifiez la variable `NEXT_PUBLIC_SOCKET_URL` dans votre `.env`
 
-- le dark mode est sauvegardé dans le localStorage
-- les sessions utilisateur sont dans le localStorage aussi
-- les parties sont sauvegardées dans la bdd même si le serveur redémarre
-- le système d'elo commence à 1000 points pr tout le monde
+### Erreur de connexion à la base de données
+- Vérifiez que PostgreSQL est en cours d'exécution
+- Vérifiez les informations dans le `.env` (user, password, port, nom de la BDD)
+- Vérifiez que la base de données existe
+- Vérifiez que le format de `DATABASE_URL` est correct : `postgresql://user:password@host:port/database`
 
-voilà, normalement tu peux tester le projet maintenant. si tu as des questions ou des bugs, regarde les logs du serveur ça aide souvent, mais là il te reste juste à le publier en ligne pour le jour de la soutenance
+### Les emails de vérification n'arrivent pas
+- Vérifiez votre clé API Brevo dans le `.env`
+- Vérifiez que vous avez bien configuré votre compte Brevo
+- Vérifiez que l'email expéditeur est vérifié sur Brevo
+- En mode développement, si `BREVO_API_KEY` n'est pas configurée, l'URL de vérification sera affichée dans les logs de la console
+
+### Prisma indique que les tables n'existent pas
+- Lancez `npx prisma migrate dev` pour créer les tables
+- Vérifiez que la base de données existe bien
+- Vérifiez que `DATABASE_URL` est correctement configurée
+
+### Erreur lors du build
+- Assurez-vous d'avoir lancé `npx prisma generate` avant le build
+- Vérifiez que toutes les dépendances sont installées
+- Vérifiez que les variables d'environnement sont correctement configurées
+
+## Technologies utilisées
+
+- **Next.js 16** - Framework React avec App Router
+- **React 19** - Bibliothèque UI
+- **TypeScript** - Typage statique
+- **Socket.io** - Communication en temps réel
+- **Prisma** - ORM pour PostgreSQL
+- **PostgreSQL** - Base de données relationnelle
+- **Brevo (ex-Sendinblue)** - Service d'envoi d'emails
+- **Tailwind CSS** - Framework CSS
+- **DaisyUI** - Composants UI pour Tailwind
+
+## Notes importantes
+
+- Le dark mode est sauvegardé dans le localStorage
+- Les sessions utilisateur sont stockées dans le localStorage
+- Les parties sont sauvegardées dans la base de données même si le serveur redémarre
+- Le système ELO commence à 1000 points pour tous les nouveaux joueurs
+- En production, les migrations Prisma sont appliquées automatiquement au démarrage
+
+
+

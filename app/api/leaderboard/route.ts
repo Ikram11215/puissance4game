@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// route api pr récupérer le classement
 export async function GET() {
   try {
-    // je récupère les utilisateurs vérifiés qui ont joué au moins une partie
     const leaderboard = await prisma.user.findMany({
       where: {
         emailVerified: true,
@@ -24,7 +22,6 @@ export async function GET() {
         draws: true,
         elo: true,
       },
-      // je trie par elo décroissant puis par wins
       orderBy: [
         { elo: 'desc' },
         { wins: 'desc' },
@@ -38,4 +35,3 @@ export async function GET() {
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
-

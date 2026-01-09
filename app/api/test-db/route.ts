@@ -3,10 +3,8 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    // Test de connexion
     await prisma.$connect();
     
-    // Test des tables
     const userCount = await prisma.user.count();
     const gameCount = await prisma.game.count();
     
@@ -38,4 +36,3 @@ export async function GET() {
     }, { status: 500 });
   }
 }
-
