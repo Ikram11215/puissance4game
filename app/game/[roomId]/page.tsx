@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useSound } from "@/hooks/useSound";
 import { getSocket, disconnectSocket } from "@/lib/socket/client";
 import type { Room, Player } from "@/lib/game/types";
 import Board from "@/components/game/Board";
 import GameInfo from "@/components/game/GameInfo";
-import { IoCopy, IoCheckmark, IoArrowBack, IoRefresh } from "react-icons/io5";
+import { IoCopy, IoCheckmark, IoArrowBack, IoRefresh, IoVolumeHigh, IoVolumeMute } from "react-icons/io5";
 
 export default function GamePage() {
   const params = useParams();
@@ -23,6 +24,7 @@ export default function GamePage() {
   const [wantsRematch, setWantsRematch] = useState(false);
   const [lastMove, setLastMove] = useState<{ row: number; column: number } | null>(null);
   const [gameEndReason, setGameEndReason] = useState<string | null>(null);
+  const sounds = useSound();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -75,6 +77,7 @@ export default function GamePage() {
 
     socket.on('game-start', (data: { room: Room }) => {
       setRoom(data.room);
+      sounds.playGameStart();
       if (!myColor) {
         const me = data.room.players.find(p => p.userId === user?.id);
         if (me) setMyColor(me.color);
@@ -84,6 +87,7 @@ export default function GamePage() {
     socket.on('move-made', (data: { room: Room, column: number, row: number }) => {
       setRoom(data.room);
       setLastMove({ row: data.row, column: data.column });
+      sounds.playDrop();
       setTimeout(() => setLastMove(null), 500);
       if (!myColor) {
         const me = data.room.players.find(p => p.userId === user?.id);
@@ -103,6 +107,17 @@ export default function GamePage() {
       setRoom(updatedRoom);
       setWantsRematch(false);
       setIsReady(false);
+      
+      if (user && myColor) {
+        if (data.winner === 'draw') {
+          sounds.playDraw();
+        } else if (data.winner === myColor) {
+          sounds.playWin();
+        } else if (data.winner && data.winner !== myColor) {
+          sounds.playLose();
+        }
+      }
+      
       if (data.reason === 'abandon') {
         setGameEndReason('abandon');
         setError("");
@@ -125,6 +140,7 @@ export default function GamePage() {
     socket.on('player-reconnected', (data: { room: Room }) => {
       setRoom(data.room);
       setError("");
+      sounds.playNotification();
       if (!myColor) {
         const me = data.room.players.find(p => p.userId === user?.id);
         if (me) setMyColor(me.color);
@@ -154,6 +170,7 @@ export default function GamePage() {
       setIsReady(false);
       setGameEndReason(null);
       setError("");
+      sounds.playGameStart();
       const me = data.room.players.find(p => p.userId === user?.id);
       if (me) {
         setMyColor(me.color);
@@ -162,6 +179,7 @@ export default function GamePage() {
 
     socket.on('error', (data: { message: string }) => {
       setError(data.message);
+      sounds.playError();
       console.error('Socket error:', data.message);
     });
 
@@ -193,6 +211,7 @@ export default function GamePage() {
   }, [room, user]);
 
   const handleReady = () => {
+    sounds.playClick();
     const socket = getSocket();
     socket.emit('player-ready', { roomId });
     setIsReady(true);
@@ -200,6 +219,7 @@ export default function GamePage() {
 
   const handleMove = (column: number) => {
     if (!room || room.board.status !== 'playing') return;
+    sounds.playClick();
     const socket = getSocket();
     socket.emit('make-move', { roomId, column });
   };
@@ -217,6 +237,7 @@ export default function GamePage() {
 
   const handleRematch = () => {
     if (!wantsRematch) {
+      sounds.playClick();
       const socket = getSocket();
       socket.emit('request-rematch', { roomId });
       setWantsRematch(true);
@@ -273,6 +294,13 @@ export default function GamePage() {
             title="Copier le code"
           >
             {copied ? <IoCheckmark className="text-success" /> : <IoCopy />}
+          </button>
+          <button
+            onClick={sounds.toggleSounds}
+            className="btn btn-square btn-ghost"
+            title={sounds.enabled ? "Désactiver les sons" : "Activer les sons"}
+          >
+            {sounds.enabled ? <IoVolumeHigh /> : <IoVolumeMute />}
           </button>
         </div>
       </div>
