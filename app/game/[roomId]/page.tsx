@@ -8,7 +8,7 @@ import { getSocket, disconnectSocket } from "@/lib/socket/client";
 import type { Room, Player } from "@/lib/game/types";
 import Board from "@/components/game/Board";
 import GameInfo from "@/components/game/GameInfo";
-import { IoCopy, IoCheckmark, IoArrowBack, IoRefresh, IoVolumeHigh, IoVolumeMute, IoPersonAdd, IoPause, IoPlay } from "react-icons/io5";
+import { IoCopy, IoCheckmark, IoArrowBack, IoRefresh, IoVolumeHigh, IoVolumeMute, IoPersonAdd, IoPause, IoCheckmarkCircle } from "react-icons/io5";
 import { showNotification } from "@/components/ui/NotificationManager";
 
 export default function GamePage() {
@@ -212,15 +212,17 @@ export default function GamePage() {
       socket.off('rematch-started');
       socket.off('error');
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, user, authLoading, router]);
 
   useEffect(() => {
     if (room && user && !myColor) {
       const me = room.players.find(p => p.userId === user.id);
-      if (me) {
+      if (me && me.color) {
         setMyColor(me.color);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room, user]);
 
   const handleReady = () => {
@@ -365,7 +367,7 @@ export default function GamePage() {
                     <p className="text-info-content/80 mb-3">
                       {room.players.length === 1
                         ? "Partagez le code de la partie avec votre adversaire !"
-                        : "Cliquez sur 'Je suis prêt' pour commencer la partie."}
+                        : "Cliquez sur \"Je suis prêt\" pour commencer la partie."}
                     </p>
                     {room.players.length === 2 && !isReady && (
                       <button 
@@ -379,7 +381,7 @@ export default function GamePage() {
                     {isReady && (
                       <div className="flex items-center gap-2 text-info">
                         <span className="loading loading-spinner loading-sm"></span>
-                        <span className="font-semibold">En attente de l'adversaire...</span>
+                        <span className="font-semibold">En attente de l&apos;adversaire...</span>
                       </div>
                     )}
                   </div>
@@ -390,7 +392,7 @@ export default function GamePage() {
         )}
 
         <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 flex justify-center items-center">
+          <div className="lg:col-span-2 flex justify-center items-center">
           <Board
             grid={room.board.grid}
             onColumnClick={handleMove}
@@ -398,9 +400,9 @@ export default function GamePage() {
             currentPlayer={room.board.currentPlayer}
             lastMove={lastMove}
           />
-        </div>
+          </div>
 
-        <div>
+          <div>
           <GameInfo
             players={room.players}
             currentPlayer={room.board.currentPlayer}
@@ -447,7 +449,7 @@ export default function GamePage() {
                               <span className="font-semibold">Les deux joueurs sont prêts ! La partie va redémarrer...</span>
                             </div>
                           ) : (
-                            <p className="text-sm text-base-content/70">En attente de l'adversaire...</p>
+                            <p className="text-sm text-base-content/70">En attente de l&apos;adversaire...</p>
                           )}
                         </div>
                       )}
@@ -465,6 +467,7 @@ export default function GamePage() {
               </button>
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>
