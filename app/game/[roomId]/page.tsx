@@ -95,7 +95,7 @@ export default function GamePage() {
       }
     });
 
-    socket.on('game-over', (data: { room: Room, winner?: Player, reason?: string }) => {
+    socket.on('game-over', (data: { room: Room, winner?: Player | 'draw', reason?: string }) => {
       const updatedRoom: Room = {
         ...data.room,
         board: {
@@ -109,11 +109,12 @@ export default function GamePage() {
       setIsReady(false);
       
       if (user && myColor) {
-        if (data.winner === 'draw') {
+        const winner = data.winner || data.room.board.winner;
+        if (winner === 'draw') {
           sounds.playDraw();
-        } else if (data.winner === myColor) {
+        } else if (winner === myColor) {
           sounds.playWin();
-        } else if (data.winner && data.winner !== myColor) {
+        } else if (winner && winner !== myColor) {
           sounds.playLose();
         }
       }
