@@ -42,7 +42,6 @@ export default function GamePage() {
       console.log('Room created received:', data);
       setRoom(data.room);
       setMyColor('red');
-      socket.join(roomId);
     });
 
     socket.on('room-joined', (data: { room: Room }) => {
